@@ -151,19 +151,36 @@ if demand_file and inventory_file:
 
         st.success("✅ Multi-Agent AI System Successfully Executed!")
 
-        # **Step 5: Supplier Management (Optional)**
-        if supplier_file:
-            df_supplier = pd.read_csv(supplier_file)
-            st.subheader("🏭 Supplier Data Analysis")
-            st.write(df_supplier.head())
+      # **Step 5: Supplier Management (Optional)**
+if supplier_file:
+    df_supplier = pd.read_csv(supplier_file)
+    st.subheader("🏭 Supplier Data Analysis")
+    st.write(df_supplier.head())
 
-            supplier_orders = df_inventory[df_inventory['Stock Status'] == 'Low Stock'][['Reorder Quantity']]
-            df_supplier = pd.merge(df_supplier, supplier_orders, left_index=True, right_index=True, how="left")
-            df_supplier.fillna(0, inplace=True)
-            st.write(df_supplier)
+    # Ensure required columns exist
+    expected_cols = ['Supplier', 'Reorder Quantity']
+    actual_cols = list(df_supplier.columns)
 
-            fig_supplier = px.bar(df_supplier, x="Supplier", y="Reorder Quantity", title="Reorder Requests to Suppliers")
-            st.plotly_chart(fig_supplier)
+    col_mapping = {}
+    for expected in expected_cols:
+        best_match = difflib.get_close_matches(expected, actual_cols, n=1, cutoff=0.5)
+        if best_match:
+            col_mapping[expected] = best_match[0]
+        else:
+            st.warning(f"⚠️ Column `{expected}` missing in Supplier Data. Filling with default values.")
+            df_supplier[expected] = "Unknown" if expected == "Supplier" else 0  
 
-else:
-    st.warning("⚠️ Please upload both Demand Forecasting & Inventory Monitoring CSV files.")
+    df_supplier.rename(columns=col_mapping, inplace=True)
+
+    # Merge Reorder Data
+    supplier_orders = df_inventory[df_inventory['Stock Status'] == 'Low Stock'][['Reorder Quantity']]
+    df_supplier = pd.merge(df_supplier, supplier_orders, left_index=True, right_index=True, how="left")
+    df_supplier.fillna(0, inplace=True)
+    st.write(df_supplier)
+
+    # **✅ Fixed Plotly Bar Chart**
+    if 'Supplier' in df_supplier.columns and 'Reorder Quantity' in df_supplier.columns:
+        fig_supplier = px.bar(df_supplier, x="Supplier", y="Reorder Quantity", title="Reorder Requests to Suppliers")
+        st.plotly_chart(fig_supplier)
+    else:
+        st.error("❌ Required columns missing! Cannot generate supplier chart.")
