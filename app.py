@@ -2,41 +2,48 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
-import seaborn as sns
-import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_absolute_error
 
-# **📌 Multi-Agent AI System Functions**
+# **📌 Demand Forecasting AI Agent**
 class DemandAgent:
     def __init__(self, data):
         self.data = data
 
     def preprocess_data(self):
+        # Auto-detect column names
+        expected_cols = ['Price', 'Promotions', 'Seasonality Factors', 'Sales Quantity']
+        actual_cols = list(self.data.columns)
+        
+        col_mapping = {}
+        for expected in expected_cols:
+            found = [col for col in actual_cols if expected.lower() in col.lower()]
+            if found:
+                col_mapping[expected] = found[0]
+            else:
+                st.warning(f"⚠️ Column `{expected}` not found! Filling with default values.")
+                self.data[expected] = 0  # Fill missing columns
+
+        # Rename columns as per standard names
+        self.data.rename(columns=col_mapping, inplace=True)
+
         # Handle missing values
         self.data.fillna("Unknown", inplace=True)
-        
-        # Convert categorical columns to string and encode
+
+        # Encode categorical variables
         label_encoders = {}
         for col in self.data.select_dtypes(include=['object']).columns:
             self.data[col] = self.data[col].astype(str)  # Convert to string
             label_encoders[col] = LabelEncoder()
             self.data[col] = label_encoders[col].fit_transform(self.data[col])
-        
+
         return self.data
 
     def predict_demand(self):
         self.data = self.preprocess_data()
-        
         try:
-            required_cols = {'Price', 'Promotions', 'Seasonality Factors', 'Sales Quantity'}
-            if not required_cols.issubset(self.data.columns):
-                missing_cols = required_cols - set(self.data.columns)
-                st.error(f"❌ Missing required columns: {missing_cols}")
-                return None, None
-            
             X = self.data[['Price', 'Promotions', 'Seasonality Factors']]
             y = self.data['Sales Quantity']
 
