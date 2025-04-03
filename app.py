@@ -6,27 +6,32 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_absolute_error
+import difflib  # To match similar column names
 
 # **📌 Demand Forecasting AI Agent**
 class DemandAgent:
     def __init__(self, data):
         self.data = data
 
+    def find_best_match(self, expected_col, actual_cols):
+        """Find the closest match for the expected column in the actual CSV headers."""
+        matches = difflib.get_close_matches(expected_col, actual_cols, n=1, cutoff=0.5)
+        return matches[0] if matches else None
+
     def preprocess_data(self):
-        # Auto-detect column names
         expected_cols = ['Price', 'Promotions', 'Seasonality Factors', 'Sales Quantity']
         actual_cols = list(self.data.columns)
         
         col_mapping = {}
         for expected in expected_cols:
-            found = [col for col in actual_cols if expected.lower() in col.lower()]
-            if found:
-                col_mapping[expected] = found[0]
+            best_match = self.find_best_match(expected, actual_cols)
+            if best_match:
+                col_mapping[expected] = best_match
             else:
                 st.warning(f"⚠️ Column `{expected}` not found! Filling with default values.")
-                self.data[expected] = 0  # Fill missing columns
+                self.data[expected] = 0  # Fill missing columns with default values
 
-        # Rename columns as per standard names
+        # Rename columns for consistency
         self.data.rename(columns=col_mapping, inplace=True)
 
         # Handle missing values
