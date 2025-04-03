@@ -8,7 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import mean_absolute_error
 import difflib
 
-# **📌 Multi-Agent Framework for Retail Optimization**
+# **📌 Multi-Agent AI System for Retail Optimization**
 class DemandAgent:
     """Predicts product demand based on historical data."""
     def __init__(self, data):
@@ -100,50 +100,70 @@ class SupplyChainAgent:
 
 # **🚀 Streamlit UI**
 st.title("🛒 AI-Powered Retail Inventory Optimization (Multi-Agent System)")
-st.markdown("### **Upload Your Retail Data (CSV Format)**")
+st.markdown("### **Upload Retail Data (3 CSV Files Required)**")
 
-uploaded_file = st.file_uploader("📤 Upload CSV file", type=["csv"])
+# **File Uploads**
+demand_file = st.file_uploader("📤 Upload Demand Forecasting Data", type=["csv"])
+inventory_file = st.file_uploader("📤 Upload Inventory Monitoring Data", type=["csv"])
+supplier_file = st.file_uploader("📤 Upload Supplier Data (Optional)", type=["csv"])
 
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-    st.subheader("📊 Uploaded Data")
-    st.write(df.head())
+if demand_file and inventory_file:
+    df_demand = pd.read_csv(demand_file)
+    df_inventory = pd.read_csv(inventory_file)
+
+    st.subheader("📊 Uploaded Data Preview")
+    st.write(df_demand.head())
 
     # **Step 1: Demand Forecasting**
     st.subheader("📈 Demand Forecasting")
-    demand_agent = DemandAgent(df)
-    df, mae = demand_agent.predict_demand()
+    demand_agent = DemandAgent(df_demand)
+    df_demand, mae = demand_agent.predict_demand()
     
-    if df is not None:
+    if df_demand is not None:
         st.write(f"**Model MAE:** {mae:.2f}")
-        fig_demand = px.line(df, x=df.index, y=["Sales Quantity", "Predicted Demand"], title="Actual vs. Predicted Demand")
+        fig_demand = px.line(df_demand, x=df_demand.index, y=["Sales Quantity", "Predicted Demand"], title="Actual vs. Predicted Demand")
         st.plotly_chart(fig_demand)
 
         # **Step 2: Inventory Monitoring**
         st.subheader("📊 Inventory Monitoring")
-        inventory_agent = InventoryMonitoringAgent(df)
-        df = inventory_agent.check_inventory()
-        st.write(df[['Stock Status']].value_counts())
+        inventory_agent = InventoryMonitoringAgent(df_demand)
+        df_inventory = inventory_agent.check_inventory()
+        st.write(df_inventory[['Stock Status']].value_counts())
 
         # **Step 3: Pricing Optimization**
         st.subheader("💰 Dynamic Pricing Optimization")
-        pricing_agent = PricingOptimizationAgent(df)
-        df = pricing_agent.optimize_pricing()
-        st.write(df[['Price', 'New Price']].head())
+        pricing_agent = PricingOptimizationAgent(df_inventory)
+        df_inventory = pricing_agent.optimize_pricing()
+        st.write(df_inventory[['Price', 'New Price']].head())
 
         # **Step 4: Supply Chain Management**
         st.subheader("🚛 Automated Supply Chain Management")
-        supply_chain_agent = SupplyChainAgent(df)
-        df = supply_chain_agent.manage_supply_chain()
-        st.write(df[['Stock Status', 'Reorder Quantity']].head())
+        supply_chain_agent = SupplyChainAgent(df_inventory)
+        df_inventory = supply_chain_agent.manage_supply_chain()
+        st.write(df_inventory[['Stock Status', 'Reorder Quantity']].head())
 
-        # **Visualization**
-        fig_inventory = px.pie(df, names='Stock Status', title="Stock Distribution")
+        # **Visualizations**
+        fig_inventory = px.pie(df_inventory, names='Stock Status', title="Stock Distribution")
         st.plotly_chart(fig_inventory)
 
-        fig_pricing = px.scatter(df, x="Price", y="New Price", title="Price Adjustments", color="Stock Status")
+        fig_pricing = px.scatter(df_inventory, x="Price", y="New Price", title="Price Adjustments", color="Stock Status")
         st.plotly_chart(fig_pricing)
 
         st.success("✅ Multi-Agent AI System Successfully Executed!")
+
+        # **Step 5: Supplier Management (Optional)**
+        if supplier_file:
+            df_supplier = pd.read_csv(supplier_file)
+            st.subheader("🏭 Supplier Data Analysis")
+            st.write(df_supplier.head())
+
+            supplier_orders = df_inventory[df_inventory['Stock Status'] == 'Low Stock'][['Reorder Quantity']]
+            df_supplier = pd.merge(df_supplier, supplier_orders, left_index=True, right_index=True, how="left")
+            df_supplier.fillna(0, inplace=True)
+            st.write(df_supplier)
+
+            fig_supplier = px.bar(df_supplier, x="Supplier", y="Reorder Quantity", title="Reorder Requests to Suppliers")
+            st.plotly_chart(fig_supplier)
+
 else:
-    st.warning("⚠️ Please upload a CSV file.")
+    st.warning("⚠️ Please upload both Demand Forecasting & Inventory Monitoring CSV files.")
