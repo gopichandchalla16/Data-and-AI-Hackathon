@@ -138,7 +138,7 @@ if uploaded_file is not None:
         st.write(df[['Stock Status', 'Reorder Quantity']].head())
 
         # **Visualization**
-        fig_inventory = px.pie(df, names='Stock Status', title="Stock Distribution"
+        fig_inventory = px.pie(df, names='Stock Status', title="Stock Distribution")
         st.plotly_chart(fig_inventory)
 
         fig_pricing = px.scatter(df, x="Price", y="New Price", title="Price Adjustments", color="Stock Status")
